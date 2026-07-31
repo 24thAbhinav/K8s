@@ -1,0 +1,17 @@
+# Kind — 3-Node Local Cluster Config
+#
+# Creates:  1 control-plane node  +  2 worker nodes
+# Usage:    kind create cluster --name my-cluster --config kind-config.yaml
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+
+nodes:
+  # Control-plane node
+  - role: control-plane
+
+  # Worker node 1
+  - role: worker
+
+  # Worker node 2
+  - role: worker

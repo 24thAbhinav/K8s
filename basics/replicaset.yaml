@@ -1,0 +1,91 @@
+# ReplicaSet Manifest
+#
+# Maintains 3 replicas of an nginx pod at all times.
+# If a pod crashes or is deleted, the ReplicaSet automatically creates a replacement.
+#
+# Usage:
+#   kubectl apply  -f replicaset.yaml        # create / update
+#   kubectl get    replicasets               # list ReplicaSets
+#   kubectl get    pods -l app=nginx-rs      # list pods managed by this RS
+#   kubectl delete -f replicaset.yaml        # remove
+
+# ─── API & Kind ──────────────────────────────────────────────────────────────
+
+# "apps/v1" is the API group for workload resources (ReplicaSet, Deployment, etc.)
+# Core resources like Pod use plain "v1". Always check the right group for the kind.
+apiVersion: apps/v1
+
+# The type of Kubernetes resource being defined.
+# ReplicaSet ensures a stable number of pod replicas are running at any given time.
+kind: ReplicaSet
+
+# ─── Metadata ─────────────────────────────────────────────────────────────────
+
+metadata:
+  # Unique name for this ReplicaSet within the namespace.
+  name: nginx-replicaset
+
+  # Namespace to deploy into. "default" exists in every cluster out of the box.
+  # Use custom namespaces (e.g., staging, prod) to isolate environments.
+  namespace: default
+
+  # Labels on the ReplicaSet *object itself* (not its pods).
+  # Useful for listing/filtering: kubectl get rs -l env=learning
+  labels:
+    app: nginx-rs
+    env: learning
+
+# ─── Spec ─────────────────────────────────────────────────────────────────────
+
+spec:
+  # Number of pod copies to keep alive at all times.
+  # If a pod dies → RS creates one. If you have too many → RS deletes one.
+  replicas: 3
+
+  # ── Selector ──────────────────────────────────────────────────────────────
+  # Tells the ReplicaSet WHICH pods it is responsible for managing.
+  # The RS continuously watches for pods matching these labels.
+  # ⚠️  This MUST match the labels in template.metadata.labels below,
+  #     otherwise the RS will never recognise its own pods and will
+  #     keep spinning up new ones forever.
+  selector:
+    matchLabels:
+      app: nginx-rs   # any pod with label "app=nginx-rs" is owned by this RS
+
+  # ── Pod Template ──────────────────────────────────────────────────────────
+  # Blueprint the RS uses when it needs to create a NEW pod.
+  # This is identical to a Pod manifest nested under "template:".
+  template:
+    metadata:
+      # These labels are stamped onto every pod the RS creates.
+      # They MUST satisfy the selector above.
+      labels:
+        app: nginx-rs
+        env: learning
+
+    spec:
+      # List of containers to run inside each pod.
+      # A pod can have multiple containers that share the same network & storage.
+      containers:
+        - name: nginx                    # container name (must be unique within the pod)
+          image: nginx:1.27-alpine       # Docker image — alpine = small footprint (~7 MB)
+
+          ports:
+            - containerPort: 80          # port the container listens on (documentation only;
+              protocol: TCP              # does NOT actually expose it — use a Service for that)
+
+          # Resource management — tells the scheduler how to place this pod
+          # and the kubelet how to enforce limits at runtime.
+          resources:
+            requests:
+              # Minimum guaranteed resources. Used by the scheduler to find a node
+              # with enough capacity to place this pod.
+              cpu: "100m"      # 100 millicores = 0.1 vCPU  (1000m = 1 full core)
+              memory: "64Mi"   # 64 MiB guaranteed RAM
+
+            limits:
+              # Hard ceiling. If the container exceeds these, K8s acts:
+              #   CPU  → throttled (slowed down, NOT killed)
+              #   RAM  → OOMKilled (container is restarted)
+              cpu: "250m"      # max 0.25 vCPU before throttling kicks in
+              memory: "128Mi"  # max 128 MiB before OOM-kill
