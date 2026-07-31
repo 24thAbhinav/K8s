@@ -4,7 +4,7 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 
 ---
 
-## 📂 Files in This Folder
+##  Files in This Folder
 
 | File | Purpose |
 | ------ | --------- |
@@ -100,7 +100,7 @@ Stores cluster information, credentials, contexts, and the active context used b
 
 ---
 
-## 🔑 Core Concepts
+##  Core Concepts
 
 ### Pod
 
@@ -121,7 +121,7 @@ ReplicaSet (replicas: 3)
 
 ---
 
-## 🚀 Hands-On Walkthrough
+##  Hands-On Walkthrough
 
 ### 1. Create the cluster
 

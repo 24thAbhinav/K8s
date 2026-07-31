@@ -1,8 +1,8 @@
-# ☸️ Kubernetes Learning Repo
+#  Kubernetes Learning Repo
 
 A personal learning repository for Kubernetes concepts, manifests, and CLI references — built up progressively from the basics.
 
-## 📁 Structure
+##  Structure
 
 ```
 K8s/
@@ -13,18 +13,18 @@ K8s/
     └── README.md             # CLI reference & basics walkthrough
 ```
 
-## 🗺️ Learning Path
+##  Learning Path
 
 | Topic | Location | Status |
 |-------|----------|--------|
-| Kind cluster setup | `basics/kind-config.yaml` | ✅ |
-| Pod manifest | `basics/pod-manifest.yaml` | ✅ |
-| ReplicaSet | `basics/replicaset.yaml` | ✅ |
-| Deployments | coming soon | 🔜 |
-| Services | coming soon | 🔜 |
-| ConfigMaps & Secrets | coming soon | 🔜 |
+| Kind cluster setup | `basics/kind-config.yaml` |  |
+| Pod manifest | `basics/pod-manifest.yaml` |  |
+| ReplicaSet | `basics/replicaset.yaml` |  |
+| Deployments | coming soon |  |
+| Services | coming soon |  |
+| ConfigMaps & Secrets | coming soon |  |
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
