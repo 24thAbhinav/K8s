@@ -135,8 +135,10 @@ Deployment
 Key rollout commands:
 
 ```bash
-kubectl rollout status deployment/nginx-deployment
-kubectl rollout undo   deployment/nginx-deployment
+kubectl rollout history deployment/nginx-deployment          # see available revisions
+kubectl rollout status  deployment/nginx-deployment
+kubectl rollout undo    deployment/nginx-deployment
+kubectl rollout undo    deployment/nginx-deployment --to-revision=1
 ```
 
 ---
