@@ -1,30 +1,35 @@
-#  Kubernetes Learning Repo
+# Kubernetes Learning Repo
 
 A personal learning repository for Kubernetes concepts, manifests, and CLI references — built up progressively from the basics.
 
-##  Structure
+## Structure
 
 ```
 K8s/
-└── basics/
-    ├── kind-config.yaml      # Kind 3-node cluster config
-    ├── pod-manifest.yaml     # Basic Pod manifest
-    ├── replicaset.yaml       # ReplicaSet manifest
-    └── README.md             # CLI reference & basics walkthrough
+├── basics/
+│   ├── kind-config.yaml      # Kind 3-node cluster config
+│   ├── pod-manifest.yaml     # Basic Pod manifest
+│   ├── replicaset.yaml       # ReplicaSet manifest
+│   ├── deployment.yml        # Deployment manifest
+│   └── README.md             # CLI reference & basics walkthrough
+└── dailycode/
+    ├── deployment.yml        # day-to-day nginx Deployment
+    └── README.md             # manifest index
 ```
 
-##  Learning Path
+## Learning Path
 
 | Topic | Location | Status |
 |-------|----------|--------|
 | Kind cluster setup | `basics/kind-config.yaml` |  |
 | Pod manifest | `basics/pod-manifest.yaml` |  |
 | ReplicaSet | `basics/replicaset.yaml` |  |
-| Deployments | coming soon |  |
+| Deployments | `basics/deployment.yml` |  |
+| Daily use manifests | `dailycode/` |  |
 | Services | coming soon |  |
 | ConfigMaps & Secrets | coming soon |  |
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -46,6 +51,9 @@ kubectl apply -f basics/pod-manifest.yaml
 
 # 4. Apply the ReplicaSet
 kubectl apply -f basics/replicaset.yaml
+
+# 5. Apply the Deployment
+kubectl apply -f basics/deployment.yml
 ```
 
 ---

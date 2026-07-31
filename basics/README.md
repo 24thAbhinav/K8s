@@ -11,6 +11,7 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `kind-config.yaml` | Kind cluster config — 1 control-plane + 2 worker nodes |
 | `pod-manifest.yaml` | Declarative manifest for a single nginx Pod |
 | `replicaset.yaml` | ReplicaSet that keeps 3 nginx Pod replicas running |
+| `deployment.yml` | Deployment wrapping a ReplicaSet with rolling-update support |
 
 ---
 
@@ -119,6 +120,25 @@ ReplicaSet (replicas: 3)
 
 > In practice, you rarely create ReplicaSets directly — a **Deployment** manages ReplicaSets for you and adds rolling-update support.
 
+### Deployment
+
+The standard way to run stateless workloads. A Deployment owns and manages a ReplicaSet under the hood, and adds **rolling updates** and **rollback** support. Changing the pod template (e.g., bumping the image) triggers a new rollout — old pods are replaced gradually with zero downtime.
+
+```
+Deployment
+ └── ReplicaSet (current)
+      ├── Pod (nginx)
+      ├── Pod (nginx)
+      └── Pod (nginx)
+```
+
+Key rollout commands:
+
+```bash
+kubectl rollout status deployment/nginx-deployment
+kubectl rollout undo   deployment/nginx-deployment
+```
+
 ---
 
 ##  Hands-On Walkthrough
@@ -156,9 +176,26 @@ kubectl delete pod <one-of-the-rs-pods>
 kubectl get pods -l app=nginx-rs
 ```
 
-### 4. Tear down
+### 4. Deploy using a Deployment
 
 ```bash
+kubectl apply -f deployment.yml
+
+# Watch all 4 replicas come up
+kubectl get pods -l app=nginx
+
+# Check the Deployment and the ReplicaSet it created
+kubectl get deployments
+kubectl get replicasets
+
+# Simulate a rollout by changing the image, then check status
+kubectl rollout status deployment/nginx-deployment
+```
+
+### 5. Tear down
+
+```bash
+kubectl delete -f deployment.yml
 kubectl delete -f replicaset.yaml
 kubectl delete -f pod-manifest.yaml
 kind delete cluster --name my-cluster
