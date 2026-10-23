@@ -83,7 +83,13 @@ Streams logs continuously (`-f` = follow).
 kubectl delete pod <pod-name>
 ```
 
-Deletes the specified pod.
+Deletes the specified pod. Same pattern for other resources — e.g. `kubectl delete svc <name>`, `kubectl delete deployment <name>`, `kubectl delete ns <name>` (deletes everything inside it).
+
+```bash
+kubectl delete -f <file.yaml>
+```
+
+Deletes the resources defined in a manifest.
 
 ```bash
 kubectl run <pod-name> --image=<image-name>
@@ -137,7 +143,7 @@ Creates a namespace.
 kubectl get pods -n <namespace>
 ```
 
-Scopes any command to a namespace. Use `--all-namespaces` (or `-A`) for every namespace.
+Scopes any command to a namespace. If `-n` is omitted, commands default to the `default` namespace. Use `--all-namespaces` (or `-A`) for every namespace.
 
 ---
 
