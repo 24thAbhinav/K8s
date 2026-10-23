@@ -12,6 +12,8 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `pod-manifest.yaml` | Declarative manifest for a single nginx Pod |
 | `replicaset.yaml` | ReplicaSet that keeps 3 nginx Pod replicas running |
 | `deployment.yml` | Deployment wrapping a ReplicaSet with rolling-update support |
+| `service.yaml` | NodePort Service exposing the nginx Pod on port 30007 |
+| `service-lb.yaml` | LoadBalancer Service (needs a cloud provider; `<pending>` locally) |
 
 ---
 
@@ -89,6 +91,36 @@ kubectl run <pod-name> --image=<image-name>
 
 Creates a pod imperatively (mainly for testing; prefer manifests).
 
+```bash
+kubectl get svc
+```
+
+Lists all Services in the current namespace.
+
+```bash
+kubectl describe svc <service-name>
+```
+
+Shows Service details — type, selector, ClusterIP, and ports.
+
+```bash
+kubectl get endpoints <service-name>
+```
+
+Shows the Pod IPs the Service routes to (empty means the selector matches no ready Pods).
+
+```bash
+kubectl port-forward svc/<service-name> 8080:80
+```
+
+Forwards a local port to a Service — handy for local testing when NodePort isn't reachable.
+
+```bash
+kubectl expose deployment <name> --port=80 --type=NodePort
+```
+
+Creates a Service for an existing workload imperatively (prefer a manifest).
+
 ---
 
 ### kubeconfig
@@ -140,6 +172,24 @@ kubectl rollout status  deployment/nginx-deployment
 kubectl rollout undo    deployment/nginx-deployment
 kubectl rollout undo    deployment/nginx-deployment --to-revision=1
 ```
+
+### Service
+
+A stable network endpoint in front of a set of Pods (selected by label). Three types:
+
+| Type | Scope | Use for |
+| ------ | ------- | --------- |
+| **ClusterIP** | Internal only | Service-to-Service / Pod-to-Pod traffic inside the cluster |
+| **NodePort** | Opens a port on every node | Simple external access (no TLS/certs) |
+| **LoadBalancer** | Provisions an external LB via a cloud provider | Public exposure in the cloud |
+
+**ClusterIP** — the default. Internally exposed; used by Pods/nodes to talk to each other. Needed when self-hosting databases, Kafka, etc.
+
+**NodePort** — exposes a port (`30000–32767`) on every node; visiting any node routes the request through cluster networking to the target Pod.
+
+> On macOS with Docker Desktop you can't reach node IPs directly — nodes live inside a VM, so a host port must be mapped via `extraPortMappings` at cluster-creation time.
+
+**LoadBalancer** — provisions an external load balancer through a cloud provider (e.g. DigitalOcean). It's an external component that lives outside the cluster, so deleting the cluster doesn't remove it — and the provider bills for it. Locally there's no external IP: `kubectl get svc` shows `<pending>`.
 
 ---
 
