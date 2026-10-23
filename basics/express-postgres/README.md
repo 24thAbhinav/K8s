@@ -67,7 +67,7 @@ Then open:
 
 ## Notes
 
-- **ClusterIP only** — nothing is exposed outside the cluster; the `postgres` Service is reachable inside the cluster as `postgres:5432`.
+- **ClusterIP only** — nothing is exposed outside the cluster; other Pods reach `postgres` at `postgres:5432` (full DNS: `postgres.backend.svc.cluster.local:5432`).
 - **Seeding** — the Express app creates the `items` table and inserts the sample rows on startup, but only if the table is empty.
 - **Ephemeral data** — Postgres uses no volume, so data resets if the Postgres pod is recreated; the app re-seeds on the next start.
 - **Credentials live in the manifests** (plain env values) — fine for a local demo, not for anything real.

@@ -14,6 +14,7 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `deployment.yml` | Deployment wrapping a ReplicaSet with rolling-update support |
 | `service.yaml` | NodePort Service exposing the nginx Pod on port 30007 |
 | `service-lb.yaml` | LoadBalancer Service (needs a cloud provider; `<pending>` locally) |
+| `nginx.yaml` | NGINX reverse proxy — config (ConfigMap) + Deployment + ClusterIP Service |
 
 ---
 
@@ -160,6 +161,24 @@ kubectl config set-context --current --namespace=<name>
 
 Sets the default namespace for the current context, so you can drop `-n` on every command. Check it with `kubectl config view --minify`; reset with `--namespace=default`.
 
+```bash
+kubectl get configmaps
+```
+
+Lists ConfigMaps in the current namespace (short form: `cm`).
+
+```bash
+kubectl describe configmap <name>
+```
+
+Shows the keys and values of a ConfigMap.
+
+```bash
+kubectl create configmap <name> --from-literal=KEY=value
+```
+
+Creates a ConfigMap from a literal value — or from a file with `--from-file=<path>`.
+
 ---
 
 ### kubeconfig
@@ -222,7 +241,7 @@ A stable network endpoint in front of a set of Pods (selected by label). Three t
 | **NodePort** | Opens a port on every node | Simple external access (no TLS/certs) |
 | **LoadBalancer** | Provisions an external LB via a cloud provider | Public exposure in the cloud |
 
-**ClusterIP** — the default. Internally exposed; used by Pods/nodes to talk to each other. Needed when self-hosting databases, Kafka, etc.
+**ClusterIP** — the default. Internally exposed; used by Pods/nodes to talk to each other. Other Pods reach it by DNS: `<service>.<namespace>.svc.cluster.local:<port>` — or the short forms `<service>` when in the same namespace, and `<service>.<namespace>` otherwise. Needed when self-hosting databases, Kafka, etc.
 
 **NodePort** — exposes a port (`30000–32767`) on every node; visiting any node routes the request through cluster networking to the target Pod.
 
@@ -241,6 +260,78 @@ Built-in namespaces:
 - `kube-public`, `kube-node-lease` — cluster-internal
 
 Used to separate environments or teams (e.g. `dev`, `staging`, `prod`) and to apply quotas and RBAC per group. Scoped work with `-n <namespace>`.
+
+### Ingress
+
+A set of **HTTP routing rules** (host/path → Service). On its own an Ingress does nothing — the cluster must run an **Ingress Controller** (e.g. NGINX): that's the Pod that watches Ingress objects and actually proxies traffic. So the NGINX Pod is the entry point; the Ingress object is just the config it follows.
+
+Say you have `frontend`, `backend`, and `db` Pods (each behind a ClusterIP Service). You run one NGINX ingress controller and point both apps at it:
+
+```
+Client → Ingress Controller (NGINX Pod, exposed via NodePort/LoadBalancer)
+       → Ingress rules (host/path)
+       → ClusterIP Services: frontend / backend
+       → Pods
+```
+
+- Routes to **Services** (ClusterIP), never directly to Pods.
+- One entry point for many apps: `/` → `frontend`, `/api` → `backend`.
+- `db` stays ClusterIP-only — you don't expose a database through Ingress.
+
+Minimal Ingress (uses the NGINX controller):
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: myapp.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+```
+
+Needs an ingress controller installed (e.g. `ingress-nginx`). On Kind its Service uses NodePorts 80/443, so those must be mapped to the host via `extraPortMappings` at cluster-creation time — the same macOS/VM boundary as NodePort.
+
+### ConfigMap
+
+Holds **non-secret configuration** as key/value pairs (or whole files), kept outside the container image so the same image works in every environment.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_MODE: production
+  nginx.conf: |
+    server { listen 80; }
+```
+
+| -> for multiline 
+A Pod consumes it by reference — there are three ways:
+
+- **Env vars** — via `envFrom` or `valueFrom.configMapKeyRef`
+- **Command args** — e.g. `--config=/etc/app/app.conf`
+- **Mounted files** — mount the ConfigMap as a volume; each key becomes a file (see `nginx.yaml`, where `default.conf` is mounted into the NGINX Pod)
+
+Caveats: env-var consumers only pick up changes after the Pod restarts, while mounted files update on their own (eventually). And **secrets don't go here** — passwords/tokens belong in a `Secret`.
 
 ---
 
