@@ -121,6 +121,24 @@ kubectl expose deployment <name> --port=80 --type=NodePort
 
 Creates a Service for an existing workload imperatively (prefer a manifest).
 
+```bash
+kubectl get namespaces
+```
+
+Lists all namespaces (short form: `ns`).
+
+```bash
+kubectl create namespace <name>
+```
+
+Creates a namespace.
+
+```bash
+kubectl get pods -n <namespace>
+```
+
+Scopes any command to a namespace. Use `--all-namespaces` (or `-A`) for every namespace.
+
 ---
 
 ### kubeconfig
@@ -190,6 +208,18 @@ A stable network endpoint in front of a set of Pods (selected by label). Three t
 > On macOS with Docker Desktop you can't reach node IPs directly — nodes live inside a VM, so a host port must be mapped via `extraPortMappings` at cluster-creation time.
 
 **LoadBalancer** — provisions an external load balancer through a cloud provider (e.g. DigitalOcean). It's an external component that lives outside the cluster, so deleting the cluster doesn't remove it — and the provider bills for it. Locally there's no external IP: `kubectl get svc` shows `<pending>`.
+
+### Namespace
+
+A virtual cluster inside a cluster — a way to group and isolate resources. Names must be unique **within** a namespace, not across the cluster.
+
+Built-in namespaces:
+
+- `default` — where resources go when you don't specify a namespace
+- `kube-system` — cluster components (DNS, kube-proxy, etc.)
+- `kube-public`, `kube-node-lease` — cluster-internal
+
+Used to separate environments or teams (e.g. `dev`, `staging`, `prod`) and to apply quotas and RBAC per group. Scoped work with `-n <namespace>`.
 
 ---
 
