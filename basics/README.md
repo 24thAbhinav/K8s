@@ -137,13 +137,28 @@ Lists all namespaces (short form: `ns`).
 kubectl create namespace <name>
 ```
 
-Creates a namespace.
+Creates a namespace imperatively. You can also create it declaratively with a manifest:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <name>
+```
+
+then apply it with `kubectl apply -f <file>.yaml`.
 
 ```bash
 kubectl get pods -n <namespace>
 ```
 
 Scopes any command to a namespace. If `-n` is omitted, commands default to the `default` namespace. Use `--all-namespaces` (or `-A`) for every namespace.
+
+```bash
+kubectl config set-context --current --namespace=<name>
+```
+
+Sets the default namespace for the current context, so you can drop `-n` on every command. Check it with `kubectl config view --minify`; reset with `--namespace=default`.
 
 ---
 
