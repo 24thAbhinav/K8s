@@ -1,0 +1,47 @@
+# Postgres: Deployment + ClusterIP Service
+#
+# No volume, no ConfigMap — Postgres just runs.
+# The Express app creates the `items` table and inserts the seed rows on startup.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: demo
+            - name: POSTGRES_PASSWORD
+              value: demo
+            - name: POSTGRES_DB
+              value: demo
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: backend
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
