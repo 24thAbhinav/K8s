@@ -9,6 +9,7 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | File / Folder | Purpose |
 | ------ | --------- |
 | `kind-config.yaml` | Kind cluster config — 1 control-plane + 2 worker nodes |
+| `namespace.yaml` | Namespace manifest (`backend-namespace`) — declarative namespace creation |
 | `pod-manifest.yaml` | Declarative manifest for a single nginx Pod |
 | `replicaset.yaml` | ReplicaSet that keeps 3 nginx Pod replicas running |
 | `deployment.yml` | Deployment wrapping a ReplicaSet with rolling-update support |
@@ -16,7 +17,8 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `service-lb.yaml` | LoadBalancer Service (needs a cloud provider; `<pending>` locally) |
 | `nginx.yaml` | NGINX reverse proxy — config (ConfigMap) + Deployment + ClusterIP Service |
 | `express-postgres/` | Runnable example: Express + Postgres via ClusterIP (see its own README) |
-| `webapp/` | Runnable example: frontend + backend + postgres behind NGINX (see its own README) |
+| `webapp-nginx-routing/` | Example: frontend + backend + postgres routed by an NGINX Pod (reverse proxy), **not** Ingress (see its own README) |
+| `webapp-ingress/` | Example: the same app routed by an **Ingress** / NGINX Ingress Controller (see its own README) |
 
 ---
 

@@ -1,0 +1,91 @@
+# Frontend (static page served by nginx) — ConfigMap + Deployment + ClusterIP Service
+#
+# The page fetches "/api/items" from the same origin; the Ingress routes that to the backend.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-html
+  namespace: webapp-ingress
+data:
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Webapp Frontend</title>
+      <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f1115; color: #e6e6e6; }
+        table { border-collapse: collapse; margin-top: 1rem; }
+        th, td { border: 1px solid #2a2f3a; padding: .5rem 1rem; text-align: left; }
+        th { background: #1b1f27; }
+      </style>
+    </head>
+    <body>
+      <h1>Webapp Frontend</h1>
+      <p>Items fetched from the backend, routed through the Ingress:</p>
+      <table id="items">
+        <thead><tr><th>ID</th><th>Name</th><th>Quantity</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <script>
+        fetch('/api/items')
+          .then((r) => r.json())
+          .then((rows) => {
+            document.querySelector('#items tbody').innerHTML = rows
+              .map((r) => `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.quantity}</td></tr>`)
+              .join('');
+          })
+          .catch((e) => {
+            document.body.insertAdjacentHTML('beforeend', `<p style="color:#e46">Error: ${e}</p>`);
+          });
+      </script>
+    </body>
+    </html>
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: webapp-ingress
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+      volumes:
+        - name: html
+          configMap:
+            name: frontend-html
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: webapp-ingress
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP

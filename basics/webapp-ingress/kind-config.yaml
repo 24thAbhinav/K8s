@@ -1,0 +1,27 @@
+# Kind cluster config for the Ingress example.
+#
+# The NGINX Ingress Controller runs on the control-plane node and binds
+# hostPorts 80/443. extraPortMappings publishes those to your Mac, so the
+# Ingress is reachable at http://localhost (no port-forward needed).
+#
+#   kind create cluster --name my-cluster --config kind-config.yaml
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+  - role: worker

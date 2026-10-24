@@ -1,0 +1,32 @@
+# Ingress — HTTP routing rules for the NGINX Ingress Controller
+#
+#   /      → frontend Service :80
+#   /api   → backend  Service :3000
+#
+# The controller (installed separately in the ingress-nginx namespace) reads
+# these rules and proxies the traffic. No host is set, so it matches any host.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-ingress
+  namespace: webapp-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
