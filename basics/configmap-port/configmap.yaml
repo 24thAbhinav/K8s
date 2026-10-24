@@ -5,3 +5,4 @@ metadata:
   name: backend-config
 data:
   PORT: "3000"
+  DB: "TestString"

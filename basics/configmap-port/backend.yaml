@@ -17,13 +17,18 @@ spec:
     spec:
       containers:
         - name: backend
-          image: configmap-port-backend:1.0
+          image: configmap-port-backend:2.0
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000   # must match PORT in the ConfigMap
+            - containerPort: 3000 # must match PORT in the ConfigMap
           env:
             - name: PORT
               valueFrom:
                 configMapKeyRef:
-                  name: backend-config   # the ConfigMap name
-                  key: PORT              # the key to import
+                  name: backend-config # the ConfigMap name
+                  key: PORT # the key to import
+            - name: DB
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB
