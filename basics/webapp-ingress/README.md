@@ -30,16 +30,16 @@ The difference from the nginx example: there you write the `nginx.conf` yourself
 
 ## Files
 
-| File / Folder | Purpose |
-| ------ | --------- |
-| `kind-config.yaml` | Kind config — mapping host :80/:443 and labeling the node `ingress-ready` |
-| `namespace.yaml` | The `webapp-ingress` namespace |
-| `postgres.yaml` | Postgres Deployment + ClusterIP Service |
-| `backend/server.js` | Express API — `/api/items`, `/healthz`; seeds the DB on startup |
-| `backend/{package.json,Dockerfile}` | Backend image (`node:20-alpine`) |
-| `backend.yaml` | Backend Deployment + ClusterIP Service |
-| `frontend.yaml` | Frontend page (ConfigMap) + Deployment + ClusterIP Service |
-| `ingress.yaml` | The Ingress — `/` → frontend, `/api` → backend |
+| File / Folder                       | Purpose                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `kind-config.yaml`                  | Kind config — mapping host :80/:443 and labeling the node `ingress-ready` |
+| `namespace.yaml`                    | The `webapp-ingress` namespace                                            |
+| `postgres.yaml`                     | Postgres Deployment + ClusterIP Service                                   |
+| `backend/server.js`                 | Express API — `/api/items`, `/healthz`; seeds the DB on startup           |
+| `backend/{package.json,Dockerfile}` | Backend image (`node:20-alpine`)                                          |
+| `backend.yaml`                      | Backend Deployment + ClusterIP Service                                    |
+| `frontend.yaml`                     | Frontend page (ConfigMap) + Deployment + ClusterIP Service                |
+| `ingress.yaml`                      | The Ingress — `/` → frontend, `/api` → backend                            |
 
 ## Run
 
@@ -122,12 +122,12 @@ curl http://203.0.113.10/            # → frontend
 curl http://203.0.113.10/api/items   # → backend JSON
 ```
 
-| | Kind (no LB) | Real cluster (LB) |
-| --- | --- | --- |
-| `kind-config.yaml` | `extraPortMappings` + `ingress-ready` label | plain cluster |
-| Controller install | + `nodeSelector` patch (pin to node) | plain install |
-| Reach the Ingress | `http://localhost` (node hostPort) | `http://<EXTERNAL-IP>` |
-| Service `EXTERNAL-IP` | `<pending>` | a real IP |
+|                       | Kind (no LB)                                | Real cluster (LB)      |
+| --------------------- | ------------------------------------------- | ---------------------- |
+| `kind-config.yaml`    | `extraPortMappings` + `ingress-ready` label | plain cluster          |
+| Controller install    | + `nodeSelector` patch (pin to node)        | plain install          |
+| Reach the Ingress     | `http://localhost` (node hostPort)          | `http://<EXTERNAL-IP>` |
+| Service `EXTERNAL-IP` | `<pending>`                                 | a real IP              |
 
 ## Notes
 
