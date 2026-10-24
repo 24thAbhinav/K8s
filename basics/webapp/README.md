@@ -2,10 +2,28 @@
 
 A minimal 4-tier example. **NGINX is the single entry point**, then routes to the frontend and backend; the backend talks to Postgres. Everything runs in the cluster and is exposed only via **ClusterIP** Services — you reach it through `kubectl port-forward`.
 
-```
-Browser → (port-forward) → nginx ClusterIP :80
-                             ├── /       → frontend :80   (static page)
-                             └── /api/   → backend  :3000 (Express) ──pg──> postgres :5432
+```mermaid
+flowchart LR
+  Browser(["Browser<br/>localhost:8080"])
+  subgraph webapp["namespace: webapp"]
+    direction LR
+    NS["Service: nginx<br/><i>ClusterIP :80</i>"]
+    NP["Pod: nginx<br/>:80"]
+    FS["Service: frontend<br/><i>ClusterIP :80</i>"]
+    FP["Pod: frontend<br/>:80"]
+    BS["Service: backend<br/><i>ClusterIP :3000</i>"]
+    BP["Pod: backend<br/>:3000"]
+    PS["Service: postgres<br/><i>ClusterIP :5432</i>"]
+    PP["Pod: postgres<br/>:5432"]
+    NS --> NP
+    NP -->|"/       →"| FS
+    NP -->|"/api/   →"| BS
+    FS --> FP
+    BS --> BP
+    BP -->|"PGHOST=postgres:5432"| PS
+    PS --> PP
+  end
+  Browser -->|"kubectl port-forward<br/>svc/nginx 8080:80"| NS
 ```
 
 No Ingress is used — NGINX is just a reverse proxy whose config lives in a ConfigMap.

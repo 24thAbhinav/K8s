@@ -2,8 +2,20 @@
 
 Minimal demo: an Express backend reads from Postgres. Both run **inside** the Kind cluster and are exposed only via **ClusterIP** Services. You view the data through `kubectl port-forward`.
 
-```
-Browser → (port-forward) → express ClusterIP :3000 → Express pod ──pg──> postgres ClusterIP :5432 → Postgres pod
+```mermaid
+flowchart LR
+  Browser(["Browser<br/>localhost:3000"])
+  subgraph backend["namespace: backend"]
+    direction LR
+    ES["Service: express<br/><i>ClusterIP :3000</i>"]
+    EP["Pod: express<br/>:3000"]
+    PS["Service: postgres<br/><i>ClusterIP :5432</i>"]
+    PP["Pod: postgres<br/>:5432"]
+    ES -->|"selector app=express"| EP
+    EP -->|"PGHOST=postgres:5432"| PS
+    PS -->|"selector app=postgres"| PP
+  end
+  Browser -->|"kubectl port-forward<br/>svc/express 3000:3000"| ES
 ```
 
 ## Files
