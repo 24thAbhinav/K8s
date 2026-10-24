@@ -82,11 +82,12 @@ kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type merge 
 
 ## With a LoadBalancer (for contrast)
 
+Here the controller's `LoadBalancer` Service **is** the ingress-managed load balancer: it gets an `EXTERNAL-IP`, and you visit that IP. "External" just means the actual load balancer is provisioned **outside** the cluster (cloud provider or MetalLB) — in Kubernetes you address it through this Service.
+
 ```mermaid
 flowchart TD
-  A["Browser"]
-  E["External LoadBalancer IP"]
-  LBS["Service: ingress-nginx-controller<br/><i>type LoadBalancer</i>"]
+  A["Browser<br/>http://<EXTERNAL-IP>"]
+  LBS["Service: ingress-nginx-controller<br/><i>type LoadBalancer · EXTERNAL-IP</i><br/>the ingress-managed load balancer"]
   IC["Ingress Controller Pod (nginx)"]
   R["Ingress rules<br/>/ → frontend · /api → backend"]
   FS["Service: frontend<br/>ClusterIP :80"]
@@ -96,10 +97,19 @@ flowchart TD
   PS["Service: postgres<br/>ClusterIP :5432"]
   PP["Pod: postgres"]
 
-  A --> E --> LBS --> IC --> R
+  A --> LBS --> IC --> R
   R -->|"path /"| FS --> FP
   R -->|"path /api"| BS --> BP
   BP -->|"PGHOST=postgres:5432"| PS --> PP
+```
+
+Get its IP and visit it:
+
+```bash
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+# or just the IP:
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+curl http://<EXTERNAL-IP>/
 ```
 
 The LoadBalancer forwards to the controller (commonly through the Service's node ports, or directly to endpoints — the exact path depends on the provider, controller, and Service configuration). It does **not** normally inspect URL paths; the controller does the host/path routing.

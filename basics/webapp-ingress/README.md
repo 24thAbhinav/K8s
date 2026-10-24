@@ -31,7 +31,7 @@ The Ingress routes to **Services** (ClusterIP), never directly to Pods. `postgre
 How traffic reaches the Ingress depends on the environment:
 
 - **Local Kind on macOS** (no load-balancer provisioner): Docker port mapping → control-plane node → controller Pod. See **[WITHOUT-LOADBALANCER.md](./WITHOUT-LOADBALANCER.md)**.
-- **Cloud, or a local cluster with a working LoadBalancer:** external LoadBalancer → the controller's `LoadBalancer` Service → controller Pod. See "If you have a real LoadBalancer" below.
+- **Cloud, or a local cluster with a working LoadBalancer:** the controller's `LoadBalancer` Service gets an `EXTERNAL-IP` (the ingress-managed load balancer) → controller Pod. See "If you have a real LoadBalancer" below.
 
 ## Files
 
@@ -90,13 +90,12 @@ Then open <http://localhost> — the page shows the items, fetched from the back
 
 ## If you have a real LoadBalancer (cloud or MetalLB)
 
-When the environment provides a LoadBalancer implementation, the controller's Service (type `LoadBalancer`) gets an external IP and becomes the public entry point:
+When the environment provides a LoadBalancer implementation (a cloud provider, or MetalLB locally), the controller's Service — `ingress-nginx-controller`, type `LoadBalancer` — gets an external IP. **That Service *is* the ingress-managed load balancer.** It's "external" only in the sense that the actual load balancer is provisioned **outside** the cluster; in Kubernetes you address it through this Service's `EXTERNAL-IP`.
 
 ```mermaid
 flowchart TD
-  A["Browser"]
-  E["External LoadBalancer IP"]
-  LBS["Service: ingress-nginx-controller<br/><i>type LoadBalancer</i>"]
+  A["Browser<br/>http://<EXTERNAL-IP>"]
+  LBS["Service: ingress-nginx-controller<br/><i>type LoadBalancer · EXTERNAL-IP</i><br/>the ingress-managed load balancer"]
   IC["Ingress Controller Pod (nginx)"]
   R["Ingress rules<br/>/ → frontend · /api → backend"]
   FS["Service: frontend<br/><i>ClusterIP :80</i>"]
@@ -106,7 +105,7 @@ flowchart TD
   PS["Service: postgres<br/><i>ClusterIP :5432</i>"]
   PP["Pod: postgres"]
 
-  A --> E --> LBS --> IC --> R
+  A --> LBS --> IC --> R
   R -->|"path /"| FS --> FP
   R -->|"path /api"| BS --> BP
   BP -->|"PGHOST=postgres:5432"| PS --> PP
@@ -120,11 +119,12 @@ The LoadBalancer forwards to the controller — commonly through the Service's n
 - Install step: drop the `nodeSelector` patch.
 - The app manifests and the `Ingress` stay exactly the same.
 
-**Reach it via the external IP:**
+**Get its IP and visit it:**
 
 ```bash
 kubectl get svc -n ingress-nginx ingress-nginx-controller
-# TYPE=LoadBalancer, EXTERNAL-IP=<a real IP>   (not <pending>)
+# or just the IP:
+kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 
 curl http://<EXTERNAL-IP>/            # → frontend
 curl http://<EXTERNAL-IP>/api/items   # → backend JSON
@@ -142,7 +142,7 @@ curl http://<EXTERNAL-IP>/api/items   # → backend JSON
 - **Ingress vs. controller:** an `Ingress` declares rules; it does not receive packets. The **Ingress Controller** is a Pod that implements those rules.
 - **Kind-specific networking:** `extraPortMappings`, the controller's `hostPort`, and pinning the controller to a node are specific to this local Kind arrangement. They are **not** required for every Ingress Controller installation.
 - **`ingress-ready=true`:** a scheduling label placed on the control-plane node at cluster creation. It does not make a node ingress-ready or install a controller; the install patch uses it in the controller's `nodeSelector`.
-- **`LoadBalancer` Service:** the controller's Service is type `LoadBalancer`, but here `EXTERNAL-IP` stays `<pending>`, so it is **not** the public entry point — traffic enters through the node's `hostPort`.
+- **`LoadBalancer` Service:** the controller's Service is type `LoadBalancer` — the ingress-managed load balancer. Here `EXTERNAL-IP` stays `<pending>` (no provisioner), so it is **not** the public entry point; traffic enters through the node's `hostPort`.
 - **Workers:** in this config, ports are mapped only on the control-plane, so the controller must run there. Other arrangements (a LoadBalancer, a NodePort Service, or mappings on other nodes) may allow it to run on any suitable node.
 - **The controller is a Pod:** it can run on any suitable node when the network entry point and scheduling configuration support that arrangement.
 - **Postgres is internal:** it is ClusterIP-only and never exposed through the Ingress.
