@@ -4,9 +4,9 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 
 ---
 
-##  Files in This Folder
+##  Files & Examples in This Folder
 
-| File | Purpose |
+| File / Folder | Purpose |
 | ------ | --------- |
 | `kind-config.yaml` | Kind cluster config — 1 control-plane + 2 worker nodes |
 | `pod-manifest.yaml` | Declarative manifest for a single nginx Pod |
@@ -15,6 +15,8 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `service.yaml` | NodePort Service exposing the nginx Pod on port 30007 |
 | `service-lb.yaml` | LoadBalancer Service (needs a cloud provider; `<pending>` locally) |
 | `nginx.yaml` | NGINX reverse proxy — config (ConfigMap) + Deployment + ClusterIP Service |
+| `express-postgres/` | Runnable example: Express + Postgres via ClusterIP (see its own README) |
+| `webapp/` | Runnable example: frontend + backend + postgres behind NGINX (see its own README) |
 
 ---
 
@@ -44,47 +46,17 @@ Deletes the specified Kind cluster.
 
 ### kubectl
 
-```bash
-kubectl apply -f manifest.yml
-```
+Commands are scoped to the current namespace unless you pass `-n <namespace>` (default: `default`). Add `-A` / `--all-namespaces` to cover every namespace.
 
-Creates or updates resources defined in the manifest.
+Grouped by API object:
 
-```bash
-kubectl get nodes
-```
-
-Lists all nodes in the cluster.
+#### General
 
 ```bash
-kubectl get pods
+kubectl apply -f <file.yaml>
 ```
 
-Lists all pods in the current namespace.
-
-```bash
-kubectl describe pod <pod-name>
-```
-
-Shows detailed information and events for a pod.
-
-```bash
-kubectl logs <pod-name>
-```
-
-Prints the current logs of a pod.
-
-```bash
-kubectl logs -f <pod-name>
-```
-
-Streams logs continuously (`-f` = follow).
-
-```bash
-kubectl delete pod <pod-name>
-```
-
-Deletes the specified pod. Same pattern for other resources — e.g. `kubectl delete svc <name>`, `kubectl delete deployment <name>`, `kubectl delete ns <name>` (deletes everything inside it).
+Creates or updates the resources defined in a manifest.
 
 ```bash
 kubectl delete -f <file.yaml>
@@ -92,17 +64,71 @@ kubectl delete -f <file.yaml>
 
 Deletes the resources defined in a manifest.
 
+#### Pods
+
+```bash
+kubectl get pods
+```
+
+Lists Pods in the current namespace.
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Shows detailed information and events for a Pod.
+
+```bash
+kubectl logs <pod-name>
+```
+
+Prints a Pod's logs (`-f` to follow/stream).
+
 ```bash
 kubectl run <pod-name> --image=<image-name>
 ```
 
-Creates a pod imperatively (mainly for testing; prefer manifests).
+Creates a Pod imperatively (mainly for testing; prefer manifests).
+
+```bash
+kubectl delete pod <pod-name>
+```
+
+Deletes a Pod.
+
+#### Deployments
+
+```bash
+kubectl get deployments
+```
+
+Lists Deployments.
+
+```bash
+kubectl scale deployment <name> --replicas=3
+```
+
+Sets the desired replica count.
+
+```bash
+kubectl rollout restart deployment/<name>
+```
+
+Restarts the Pods (e.g. to pick up a newly loaded image). Other `rollout` subcommands are in the Deployment concept below.
+
+```bash
+kubectl delete deployment <name>
+```
+
+Deletes a Deployment (and the ReplicaSet/Pods it owns).
+
+#### Services
 
 ```bash
 kubectl get svc
 ```
 
-Lists all Services in the current namespace.
+Lists Services.
 
 ```bash
 kubectl describe svc <service-name>
@@ -129,6 +155,14 @@ kubectl expose deployment <name> --port=80 --type=NodePort
 Creates a Service for an existing workload imperatively (prefer a manifest).
 
 ```bash
+kubectl delete svc <service-name>
+```
+
+Deletes a Service.
+
+#### Namespaces
+
+```bash
 kubectl get namespaces
 ```
 
@@ -138,7 +172,7 @@ Lists all namespaces (short form: `ns`).
 kubectl create namespace <name>
 ```
 
-Creates a namespace imperatively. You can also create it declaratively with a manifest:
+Creates a namespace imperatively. You can also do it declaratively:
 
 ```yaml
 apiVersion: v1
@@ -147,25 +181,21 @@ metadata:
   name: <name>
 ```
 
-then apply it with `kubectl apply -f <file>.yaml`.
+then `kubectl apply -f <file>.yaml`.
 
 ```bash
-kubectl get pods -n <namespace>
+kubectl delete namespace <name>
 ```
 
-Scopes any command to a namespace. If `-n` is omitted, commands default to the `default` namespace. Use `--all-namespaces` (or `-A`) for every namespace.
+Deletes a namespace and everything inside it.
 
-```bash
-kubectl config set-context --current --namespace=<name>
-```
-
-Sets the default namespace for the current context, so you can drop `-n` on every command. Check it with `kubectl config view --minify`; reset with `--namespace=default`.
+#### ConfigMaps
 
 ```bash
 kubectl get configmaps
 ```
 
-Lists ConfigMaps in the current namespace (short form: `cm`).
+Lists ConfigMaps (short form: `cm`).
 
 ```bash
 kubectl describe configmap <name>
@@ -178,6 +208,20 @@ kubectl create configmap <name> --from-literal=KEY=value
 ```
 
 Creates a ConfigMap from a literal value — or from a file with `--from-file=<path>`.
+
+#### Cluster & context
+
+```bash
+kubectl get nodes
+```
+
+Lists all nodes in the cluster.
+
+```bash
+kubectl config set-context --current --namespace=<name>
+```
+
+Sets the default namespace for the current context, so you can drop `-n` on every command. Check it with `kubectl config view --minify`; reset with `--namespace=default`.
 
 ---
 
@@ -324,7 +368,6 @@ data:
     server { listen 80; }
 ```
 
-| -> for multiline 
 A Pod consumes it by reference — there are three ways:
 
 - **Env vars** — via `envFrom` or `valueFrom.configMapKeyRef`
