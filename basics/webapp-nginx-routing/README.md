@@ -1,4 +1,4 @@
-# Webapp: frontend + backend + postgres behind NGINX
+# Webapp: frontend + backend + postgres behind NGINX (routing, not Ingress)
 
 A minimal 4-tier example. **NGINX is the single entry point**, then routes to the frontend and backend; the backend talks to Postgres. Everything runs in the cluster and is exposed only via **ClusterIP** Services — you reach it through `kubectl port-forward`.
 
@@ -26,7 +26,7 @@ flowchart LR
   Browser -->|"kubectl port-forward<br/>svc/nginx 8080:80"| NS
 ```
 
-No Ingress is used — NGINX is just a reverse proxy whose config lives in a ConfigMap.
+> **Routing here is done by an NGINX Pod** — a plain reverse proxy whose config lives in a ConfigMap — **not** an Ingress. An Ingress-based version of this app is planned separately.
 
 ## Files
 
@@ -63,7 +63,7 @@ docker push <registry>/webapp-backend:1.0
 ## Run
 
 ```bash
-cd basics/webapp
+cd basics/webapp-nginx-routing
 
 # 1. Build + load the backend image (see above)
 docker build -t webapp-backend:1.0 backend
