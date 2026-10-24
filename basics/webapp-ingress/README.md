@@ -28,6 +28,8 @@ flowchart LR
 
 The difference from the nginx example: there you write the `nginx.conf` yourself; here you declare **routing rules** and the controller does the rest.
 
+> No load balancer locally? See **[WITHOUT-LOADBALANCER.md](./WITHOUT-LOADBALANCER.md)** for a diagrammed walkthrough of how the traffic reaches the Ingress on Kind.
+
 ## Files
 
 | File / Folder                       | Purpose                                                                   |
