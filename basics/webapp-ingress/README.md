@@ -1,11 +1,13 @@
 # Webapp: frontend + backend + postgres behind an Ingress
 
-Same app as `../webapp-nginx-routing`, but routing is done by an **Ingress** instead of a hand-written NGINX config. The **NGINX Ingress Controller** (installed separately) reads the `Ingress` object and proxies traffic.
+Same app as `../webapp-nginx-routing`, but routing is done by an **Ingress** instead of a hand-written NGINX config.
+
+An **Ingress** is only a set of declarative routing rules (host/path → Service). It does not receive packets and does not run as a process. A separate **Ingress Controller** — here NGINX, running as a Pod — watches `Ingress` objects and actually proxies the traffic.
+
+## App routing
 
 ```mermaid
 flowchart LR
-  Browser(["Browser<br/>localhost:80"])
-  IC["Ingress Controller (nginx Pod)<br/><i>hostPort :80</i>"]
   subgraph ns["namespace: webapp-ingress"]
     direction LR
     ING["Ingress: webapp-ingress<br/>/ → frontend · /api → backend"]
@@ -22,33 +24,34 @@ flowchart LR
     BP -->|"PGHOST=postgres:5432"| PS
     PS --> PP
   end
-  Browser --> IC
-  IC -->|"reads Ingress rules"| ING
 ```
 
-The difference from the nginx example: there you write the `nginx.conf` yourself; here you declare **routing rules** and the controller does the rest.
+The Ingress routes to **Services** (ClusterIP), never directly to Pods. `postgres` stays internal and is **not** exposed through the Ingress.
 
-> No load balancer locally? See **[WITHOUT-LOADBALANCER.md](./WITHOUT-LOADBALANCER.md)** for a diagrammed walkthrough of how the traffic reaches the Ingress on Kind.
+How traffic reaches the Ingress depends on the environment:
+
+- **Local Kind on macOS** (no load-balancer provisioner): Docker port mapping → control-plane node → controller Pod. See **[WITHOUT-LOADBALANCER.md](./WITHOUT-LOADBALANCER.md)**.
+- **Cloud, or a local cluster with a working LoadBalancer:** external LoadBalancer → the controller's `LoadBalancer` Service → controller Pod. See "If you have a real LoadBalancer" below.
 
 ## Files
 
-| File / Folder                       | Purpose                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| `kind-config.yaml`                  | Kind config — mapping host :80/:443 and labeling the node `ingress-ready` |
-| `namespace.yaml`                    | The `webapp-ingress` namespace                                            |
-| `postgres.yaml`                     | Postgres Deployment + ClusterIP Service                                   |
-| `backend/server.js`                 | Express API — `/api/items`, `/healthz`; seeds the DB on startup           |
-| `backend/{package.json,Dockerfile}` | Backend image (`node:20-alpine`)                                          |
-| `backend.yaml`                      | Backend Deployment + ClusterIP Service                                    |
-| `frontend.yaml`                     | Frontend page (ConfigMap) + Deployment + ClusterIP Service                |
-| `ingress.yaml`                      | The Ingress — `/` → frontend, `/api` → backend                            |
+| File / Folder                       | Purpose                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `kind-config.yaml`                  | Kind config — maps host :80/:443 to the control-plane node and labels it `ingress-ready`     |
+| `namespace.yaml`                    | The `webapp-ingress` namespace                                                              |
+| `postgres.yaml`                     | Postgres Deployment + ClusterIP Service                                                     |
+| `backend/server.js`                 | Express API — `/api/items`, `/healthz`; seeds the DB on startup                             |
+| `backend/{package.json,Dockerfile}` | Backend image (`node:20-alpine`)                                                            |
+| `backend.yaml`                      | Backend Deployment + ClusterIP Service                                                      |
+| `frontend.yaml`                     | Frontend page (ConfigMap) + Deployment + ClusterIP Service                                  |
+| `ingress.yaml`                      | The Ingress — `/` → frontend, `/api` → backend                                              |
 
 ## Run
 
 ```bash
 cd basics/webapp-ingress
 
-# 1. Create an ingress-ready cluster (maps host :80/:443; delete any existing first)
+# 1. Create the Kind cluster (maps host :80/:443 on the control-plane; delete any existing first)
 kind create cluster --name my-cluster --config kind-config.yaml
 
 # 2. Install the NGINX Ingress Controller
@@ -58,9 +61,10 @@ kubectl wait --namespace ingress-nginx \
   --selector=app.kubernetes.io/component=controller \
   --timeout=120s
 
-# Pin the controller to the ingress-ready node (the one with the host ports mapped).
-# The upstream Kind manifest does NOT do this, so it can otherwise land on a worker
-# where :80/:443 aren't mapped — and http://localhost would fail.
+# This setup reaches the controller through the control-plane node's port 80, so the
+# controller Pod must run on that node. The upstream Kind manifest only selects
+# kubernetes.io/os=linux, so add a nodeSelector for the ingress-ready label that
+# kind-config.yaml puts on the control-plane.
 kubectl patch deployment ingress-nginx-controller -n ingress-nginx --type merge \
   -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"}}}}}'
 kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
@@ -86,58 +90,62 @@ Then open <http://localhost> — the page shows the items, fetched from the back
 
 ## If you have a real LoadBalancer (cloud or MetalLB)
 
-The Kind-specific parts above exist only because a local cluster has no load-balancer provisioner. Where the `LoadBalancer` Service actually gets an IP, you drop them.
+When the environment provides a LoadBalancer implementation, the controller's Service (type `LoadBalancer`) gets an external IP and becomes the public entry point:
 
-**1. `kind-config.yaml` → a plain cluster.** Remove `extraPortMappings` and the `ingress-ready` label:
+```mermaid
+flowchart TD
+  A["Browser"]
+  E["External LoadBalancer IP"]
+  LBS["Service: ingress-nginx-controller<br/><i>type LoadBalancer</i>"]
+  IC["Ingress Controller Pod (nginx)"]
+  R["Ingress rules<br/>/ → frontend · /api → backend"]
+  FS["Service: frontend<br/><i>ClusterIP :80</i>"]
+  BS["Service: backend<br/><i>ClusterIP :3000</i>"]
+  FP["Pod: frontend"]
+  BP["Pod: backend"]
+  PS["Service: postgres<br/><i>ClusterIP :5432</i>"]
+  PP["Pod: postgres"]
 
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-  - role: worker
-  - role: worker
+  A --> E --> LBS --> IC --> R
+  R -->|"path /"| FS --> FP
+  R -->|"path /api"| BS --> BP
+  BP -->|"PGHOST=postgres:5432"| PS --> PP
 ```
 
-**2. Install step → drop the `nodeSelector` patch.** No pinning needed:
+The LoadBalancer forwards to the controller — commonly through the Service's node ports, or directly to endpoints; the exact path depends on the provider, controller, and Service configuration. It does **not** normally inspect URL paths to pick `frontend` vs `backend`; that is the **controller's** job.
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=120s
-# (no `kubectl patch ... nodeSelector` — that block is Kind-only)
-```
+**What to change for this setup:**
 
-**Unchanged:** everything else — `namespace.yaml`, `postgres.yaml`, `backend.yaml`, `frontend.yaml`, and `ingress.yaml` (the Ingress rules are the same).
+- `kind-config.yaml`: remove `extraPortMappings` and the `ingress-ready` label — they only exist for the local Kind entry point.
+- Install step: drop the `nodeSelector` patch.
+- The app manifests and the `Ingress` stay exactly the same.
 
-**Reach it via the LoadBalancer's IP** instead of `localhost`:
+**Reach it via the external IP:**
 
 ```bash
 kubectl get svc -n ingress-nginx ingress-nginx-controller
-# NAME                       TYPE           EXTERNAL-IP     PORT(S)
-# ingress-nginx-controller   LoadBalancer   203.0.113.10    80:30401/TCP,443:30580/TCP
-#                                          ^ a real IP, not <pending>
+# TYPE=LoadBalancer, EXTERNAL-IP=<a real IP>   (not <pending>)
 
-curl http://203.0.113.10/            # → frontend
-curl http://203.0.113.10/api/items   # → backend JSON
+curl http://<EXTERNAL-IP>/            # → frontend
+curl http://<EXTERNAL-IP>/api/items   # → backend JSON
 ```
 
-|                       | Kind (no LB)                                | Real cluster (LB)      |
-| --------------------- | ------------------------------------------- | ---------------------- |
-| `kind-config.yaml`    | `extraPortMappings` + `ingress-ready` label | plain cluster          |
-| Controller install    | + `nodeSelector` patch (pin to node)        | plain install          |
-| Reach the Ingress     | `http://localhost` (node hostPort)          | `http://<EXTERNAL-IP>` |
-| Service `EXTERNAL-IP` | `<pending>`                                 | a real IP              |
+|                       | Local Kind (no LB)                          | Real LoadBalancer                        |
+| --------------------- | ------------------------------------------- | ---------------------------------------- |
+| `kind-config.yaml`    | `extraPortMappings` + `ingress-ready` label | plain cluster                            |
+| Controller install    | + `nodeSelector` patch (pin to a node)      | plain install                            |
+| Reach the Ingress     | `http://localhost` (node `hostPort`)        | `http://<EXTERNAL-IP>`                   |
+| Service `EXTERNAL-IP` | `<pending>`                                 | a real IP                                |
 
 ## Notes
 
-- **With a real load balancer, skip all the Kind-specific bits:** on a cloud cluster (or locally with MetalLB), the `ingress-nginx-controller` Service gets a real `EXTERNAL-IP` and the LoadBalancer handles getting traffic to the controller — so you don't need `extraPortMappings`, node hostPort bindings, or the node pinning. Those steps exist only because a plain Kind cluster has no load-balancer provisioner (the Service would sit at `<pending>`). You'd just point at the LB's external IP.
-- **Why the custom `kind-config.yaml`:** the controller binds hostPorts 80/443 on the node; `extraPortMappings` publishes those to your Mac, so it's reachable at `localhost`. That mapping can only be set at cluster-creation time.
-- **Pin the controller (important):** the controller Pod must run on the `ingress-ready` node — if it lands on a worker, `:80` isn't mapped and `http://localhost` returns nothing. That's why installation includes a `nodeSelector` patch.
-- **The controller is separate:** `ingress-nginx` lives in its own namespace and is installed from the upstream manifest (not part of this folder).
-- **Ingress routes to Services**, never directly to Pods; `postgres` is ClusterIP-only and never exposed.
+- **Ingress vs. controller:** an `Ingress` declares rules; it does not receive packets. The **Ingress Controller** is a Pod that implements those rules.
+- **Kind-specific networking:** `extraPortMappings`, the controller's `hostPort`, and pinning the controller to a node are specific to this local Kind arrangement. They are **not** required for every Ingress Controller installation.
+- **`ingress-ready=true`:** a scheduling label placed on the control-plane node at cluster creation. It does not make a node ingress-ready or install a controller; the install patch uses it in the controller's `nodeSelector`.
+- **`LoadBalancer` Service:** the controller's Service is type `LoadBalancer`, but here `EXTERNAL-IP` stays `<pending>`, so it is **not** the public entry point — traffic enters through the node's `hostPort`.
+- **Workers:** in this config, ports are mapped only on the control-plane, so the controller must run there. Other arrangements (a LoadBalancer, a NodePort Service, or mappings on other nodes) may allow it to run on any suitable node.
+- **The controller is a Pod:** it can run on any suitable node when the network entry point and scheduling configuration support that arrangement.
+- **Postgres is internal:** it is ClusterIP-only and never exposed through the Ingress.
 - **Seeding / ephemeral data / credentials:** same as the other example — the backend seeds on startup, Postgres uses no volume, creds are plain env values (demo only).
 - **First-boot 503:** you may briefly get `503` on `/` right after deploy — the controller reloads once the frontend Pod has endpoints. Retry after a few seconds.
 
