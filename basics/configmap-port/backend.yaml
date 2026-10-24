@@ -1,0 +1,29 @@
+# The backend Deployment imports PORT from the backend-config ConfigMap.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: configmap-port-backend:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000   # must match PORT in the ConfigMap
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config   # the ConfigMap name
+                  key: PORT              # the key to import

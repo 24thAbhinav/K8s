@@ -1,0 +1,7 @@
+# The PORT value the backend will use. ConfigMap values are strings.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+data:
+  PORT: "3000"

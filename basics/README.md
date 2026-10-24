@@ -19,6 +19,7 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `express-postgres/` | Runnable example: Express + Postgres via ClusterIP (see its own README) |
 | `webapp-nginx-routing/` | Example: frontend + backend + postgres routed by an NGINX Pod (reverse proxy), **not** Ingress (see its own README) |
 | `webapp-ingress/` | Example: the same app routed by an **Ingress** / NGINX Ingress Controller (see its own README) |
+| `configmap-port/` | Example: Express backend whose `PORT` comes from a **ConfigMap** (see its own README) |
 
 ---
 
