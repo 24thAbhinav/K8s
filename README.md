@@ -28,6 +28,9 @@ K8s/
 | Daily use manifests | `dailycode/` |  |
 | Services | coming soon |  |
 | ConfigMaps & Secrets | coming soon |  |
+| PersistentVolumes & PVCs (cloud) | `basics/pv-pvc-cloud/` |  |
+| NFS storage (external EC2) | `basics/pv-pvc-nfs-ec2/` |  |
+| HPA & Metrics Server | `basics/hpa-metrics-server/` |  |
 
 ## Getting Started
 

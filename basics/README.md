@@ -20,6 +20,9 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `webapp-nginx-routing/` | Example: frontend + backend + postgres routed by an NGINX Pod (reverse proxy), **not** Ingress (see its own README) |
 | `webapp-ingress/` | Example: the same app routed by an **Ingress** / NGINX Ingress Controller (see its own README) |
 | `configmap-port/` | Example: Express backend whose `PORT` comes from a **ConfigMap** (see its own README) |
+| `pv-pvc-cloud/` | Dynamic PVC: a StorageClass + PVC; the cloud CSI driver creates the PV automatically (see its own README) |
+| `pv-pvc-nfs-ec2/` | Static PV/PVC backed by NFS on an external EC2, with the NFS server run via Docker (see its own README) |
+| `hpa-metrics-server/` | Metrics Server + HPA demo: `kubectl top`, metrics API, CPU-based scaling (see its own README) |
 
 ---
 

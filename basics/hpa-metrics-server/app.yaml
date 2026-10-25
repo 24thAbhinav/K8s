@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-app
+  template:
+    metadata:
+      labels:
+        app: cpu-app
+    spec:
+      containers:
+        - name: cpu-app
+          image: python:3.12-alpine
+          command:
+            - python3
+            - -c
+            - |
+              import hashlib
+              from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      data = b"x" * 4096
+                      for _ in range(50000):
+                          data = hashlib.sha256(data).digest()
+                      self.send_response(200)
+                      self.end_headers()
+                      self.wfile.write(b"ok")
+
+                  def log_message(self, *args):
+                      pass
+
+              ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 200m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-app
+spec:
+  selector:
+    app: cpu-app
+  ports:
+    - port: 80
+      targetPort: 8080
