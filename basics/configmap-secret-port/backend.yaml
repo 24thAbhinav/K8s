@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: configmap-port-backend:2.0
+          image: configmap-port-backend:3.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000 # must match PORT in the ConfigMap
@@ -38,3 +38,26 @@ spec:
                 secretKeyRef:
                   name: backend-secret # the Secret name
                   key: DB_PASSWORD # the key to import
+          # --- Mounting the .env Secret (two ways) ---
+          # Option A (used here): mount just the ".env" key as a file at /app/.env.
+          #   `subPath` is required because a volume mount REPLACES whatever is at
+          #   mountPath — mounting at /app would wipe out server.js/node_modules.
+          #   Caveat: a subPath file is frozen at container start and does NOT
+          #   refresh when the Secret changes (restart the Pod to pick up edits).
+          # Option B: mount the whole Secret into its own fresh directory, e.g.
+          #   volumeMounts:
+          #     - name: env-file
+          #       mountPath: /etc/backend-env
+          #       readOnly: true
+          #   then point dotenv at /etc/backend-env/.env (ENV_FILE env var).
+          #   A plain directory mount DOES refresh when the Secret changes, but the
+          #   app still only reads the file once at startup.
+          volumeMounts:
+            - name: env-file
+              mountPath: /app/.env
+              subPath: .env
+              readOnly: true
+      volumes:
+        - name: env-file
+          secret:
+            secretName: backend-env
