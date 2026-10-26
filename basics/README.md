@@ -12,17 +12,19 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `namespace.yaml` | Namespace manifest (`backend-namespace`) — declarative namespace creation |
 | `pod-manifest.yaml` | Declarative manifest for a single nginx Pod |
 | `replicaset.yaml` | ReplicaSet that keeps 3 nginx Pod replicas running |
-| `deployment.yml` | Deployment wrapping a ReplicaSet with rolling-update support |
 | `service.yaml` | NodePort Service exposing the nginx Pod on port 30007 |
 | `service-lb.yaml` | LoadBalancer Service (needs a cloud provider; `<pending>` locally) |
 | `nginx.yaml` | NGINX reverse proxy — config (ConfigMap) + Deployment + ClusterIP Service |
 | `express-postgres/` | Runnable example: Express + Postgres via ClusterIP (see its own README) |
 | `webapp-nginx-routing/` | Example: frontend + backend + postgres routed by an NGINX Pod (reverse proxy), **not** Ingress (see its own README) |
 | `webapp-ingress/` | Example: the same app routed by an **Ingress** / NGINX Ingress Controller (see its own README) |
-| `configmap-port/` | Example: Express backend whose `PORT` comes from a **ConfigMap** (see its own README) |
+| `configmap-secret-port/` | Example: Express backend using a ConfigMap and a Secret for environment variables (see its own README) |
 | `pv-pvc-cloud/` | Dynamic PVC: a StorageClass + PVC; the cloud CSI driver creates the PV automatically (see its own README) |
 | `pv-pvc-nfs-ec2/` | Static PV/PVC backed by NFS on an external EC2, with the NFS server run via Docker (see its own README) |
 | `hpa-metrics-server/` | Metrics Server + HPA demo: `kubectl top`, metrics API, CPU-based scaling (see its own README) |
+| `argocd/` | End-to-end GitOps example: Express backend + GitHub Actions + Docker Hub + Argo CD (see the root README) |
+
+> For the complete CI/CD + Argo CD walkthrough, see the [root README](../README.md#end-to-end-gitops-ci-example).
 
 ---
 
@@ -421,8 +423,10 @@ kubectl get pods -l app=nginx-rs
 
 ### 4. Deploy using a Deployment
 
+The Deployment manifest lives in `dailycode/`. From inside `basics/`, use the relative path:
+
 ```bash
-kubectl apply -f deployment.yml
+kubectl apply -f ../dailycode/deployment.yml
 
 # Watch all 4 replicas come up
 kubectl get pods -l app=nginx
@@ -438,7 +442,7 @@ kubectl rollout status deployment/nginx-deployment
 ### 5. Tear down
 
 ```bash
-kubectl delete -f deployment.yml
+kubectl delete -f ../dailycode/deployment.yml
 kubectl delete -f replicaset.yaml
 kubectl delete -f pod-manifest.yaml
 kind delete cluster --name my-cluster
