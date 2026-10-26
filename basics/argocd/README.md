@@ -149,12 +149,29 @@ kubectl get deployment argocd-backend-deployment
 kubectl get pods -l app=argocd-backend
 ```
 
-Expected: `Synced` / `Healthy`, Deployment `4/4`. Test the app:
+Expected: `Synced` / `Healthy`, Deployment `4/4`.
+
+### Check it works via port-forward
+
+Forward the Service to your local machine:
 
 ```bash
 kubectl port-forward service/argocd-backend-service 3000:3000
-curl http://localhost:3000/   # -> {"health":"OK"}
 ```
+
+Then in another terminal, hit the backend:
+
+```bash
+curl http://localhost:3000/
+```
+
+Expected response:
+
+```json
+{"health":"OK"}
+```
+
+If that returns `health: OK`, everything is wired up: CI built the image, GitOps updated the tag, and Argo CD rolled it out.
 
 ## Tokens and secrets
 
