@@ -22,9 +22,9 @@ A walkthrough of essential Kubernetes concepts and CLI commands for getting star
 | `pv-pvc-cloud/` | Dynamic PVC: a StorageClass + PVC; the cloud CSI driver creates the PV automatically (see its own README) |
 | `pv-pvc-nfs-ec2/` | Static PV/PVC backed by NFS on an external EC2, with the NFS server run via Docker (see its own README) |
 | `hpa-metrics-server/` | Metrics Server + HPA demo: `kubectl top`, metrics API, CPU-based scaling (see its own README) |
-| `argocd/` | End-to-end GitOps example: Express backend + GitHub Actions + Docker Hub + Argo CD (see the root README) |
+| `argocd/` | End-to-end GitOps example: Express backend + GitHub Actions + Docker Hub + Argo CD (see its own README) |
 
-> For the complete CI/CD + Argo CD walkthrough, see the [root README](../README.md#end-to-end-gitops-ci-example).
+> For the complete CI/CD + Argo CD walkthrough, see [`argocd/README.md`](argocd/README.md).
 
 ---
 
