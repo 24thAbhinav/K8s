@@ -10,6 +10,7 @@ app.get("/", (req, res) => {
   try {
     res.status(200).json({
       health: "OK",
+      version: "12:52 latest",
     });
   } catch (e) {
     console.log(e);
